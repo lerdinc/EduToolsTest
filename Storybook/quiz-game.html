@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listen & Match Quiz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(135deg, #fce4ec 0%, #e1f5fe 25%, #f3e5f5 50%, #fff9c4 75%, #e8f5e9 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 12s ease infinite;
+    padding: 20px;
+  }
+
+  @keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .container {
+    width: 98vw;
+    max-width: 1200px;
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 6px rgba(255,255,255,0.6);
+    overflow: hidden;
+    padding: 30px;
+    text-align: center;
+    position: relative;
+  }
+
+  h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: #5e35b1;
+    margin-bottom: 6px;
+    text-shadow: 2px 2px 0 rgba(255,255,255,0.6);
+  }
+
+  .page-counter {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: #7e57c2;
+    margin-bottom: 6px;
+  }
+
+  .score-display {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #43a047;
+    margin-bottom: 20px;
+  }
+
+  .audio-section { margin-bottom: 24px; }
+
+  .btn-play {
+    width: 72px;
+    height: 72px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff8a65, #ef5350);
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(239,83,80,0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+  .btn-play:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 28px rgba(239,83,80,0.5);
+  }
+  .btn-play:active { transform: scale(0.92); }
+  .btn-play.playing {
+    background: linear-gradient(135deg, #66bb6a, #43a047);
+    box-shadow: 0 6px 20px rgba(76,175,80,0.4);
+    animation: pulse 1.5s ease infinite;
+  }
+  .btn-play svg { width: 32px; height: 32px; fill: currentColor; }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 6px 20px rgba(76,175,80,0.4); }
+    50%      { box-shadow: 0 6px 30px rgba(76,175,80,0.7); }
+  }
+
+  .play-label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.9rem;
+    color: #ef5350;
+    margin-top: 8px;
+  }
+
+  .choices {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .choice-card {
+    border-radius: 16px;
+    overflow: hidden;
+    background: #f5f5f5;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, outline 0.3s ease;
+    position: relative;
+    aspect-ratio: 4/3;
+  }
+  .choice-card:hover {
+    transform: scale(1.04);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+  }
+  .choice-card img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    display: block;
+    pointer-events: none;
+  }
+
+  .choice-card.correct {
+    outline: 5px solid #66bb6a;
+    box-shadow: 0 6px 24px rgba(76,175,80,0.4);
+    transform: scale(1.05);
+  }
+  .choice-card.wrong {
+    outline: 5px solid #ef5350;
+    animation: shake 0.4s ease;
+    opacity: 0.6;
+  }
+  .choice-card.disabled { pointer-events: none; }
+
+  .choice-label {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 6px;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    text-align: center;
+    display: none;
+  }
+  .choice-card.correct .choice-label,
+  .choice-card.wrong .choice-label { display: block; }
+  .choice-card.correct .choice-label { background: rgba(76,175,80,0.8); }
+  .choice-card.wrong .choice-label   { background: rgba(239,83,80,0.8); }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%  { transform: translateX(-8px); }
+    40%  { transform: translateX(8px); }
+    60%  { transform: translateX(-6px); }
+    80%  { transform: translateX(6px); }
+  }
+
+  .nav-section { display: none; }
+  .nav-section.visible { display: block; }
+
+  .btn-next {
+    padding: 14px 40px;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    color: #fff;
+    background: linear-gradient(135deg, #7e57c2, #5e35b1);
+    box-shadow: 0 6px 20px rgba(94,53,177,0.35);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn-next:hover { transform: scale(1.06); box-shadow: 0 8px 28px rgba(94,53,177,0.45); }
+  .btn-next:active { transform: scale(0.96); }
+
+  .final-screen { display: none; }
+  .final-screen.visible { display: block; }
+
+  .final-score {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.5rem;
+    color: #5e35b1;
+    margin: 16px 0 8px;
+  }
+
+  .final-message {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #7e57c2;
+    margin-bottom: 24px;
+  }
+
+  .btn-restart {
+    padding: 14px 40px;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    color: #fff;
+    background: linear-gradient(135deg, #66bb6a, #43a047);
+    box-shadow: 0 6px 20px rgba(76,175,80,0.35);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn-restart:hover { transform: scale(1.06); box-shadow: 0 8px 28px rgba(76,175,80,0.45); }
+  .btn-restart:active { transform: scale(0.96); }
+
+  .loading-msg {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    color: #7e57c2;
+    margin-top: 40px;
+  }
+
+  .btn-back {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 10px 22px;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: #fff;
+    background: linear-gradient(135deg, #7e57c2, #5e35b1);
+    box-shadow: 0 4px 14px rgba(94,53,177,0.35);
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    z-index: 100;
+  }
+  .btn-back:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 20px rgba(94,53,177,0.45);
+  }
+
+  @media (max-width: 550px) {
+    .choices { grid-template-columns: 1fr; gap: 12px; }
+    .choice-card { aspect-ratio: 16/9; }
+    h1 { font-size: 1.5rem; }
+    .container { padding: 20px; }
+    .btn-back { top: 12px; left: 12px; font-size: 0.85rem; padding: 8px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="btn-back" href="../index.html">&#8592; Home</a>
+
+<p class="loading-msg" id="loadingMsg">Detecting images...</p>
+
+<div class="container" id="gameContainer" style="display:none">
+  <div id="quizScreen">
+    <h1>Listen & Match</h1>
+    <div class="page-counter" id="pageCounter">Round 1 of ?</div>
+    <div class="score-display" id="scoreDisplay">Score: 0 / 0</div>
+
+    <div class="audio-section">
+      <button class="btn-play" id="playBtn">
+        <svg class="play-svg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg class="pause-svg" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>
+      </button>
+      <div class="play-label">Tap to listen</div>
+    </div>
+
+    <div class="choices" id="choices"></div>
+
+    <div class="nav-section" id="navSection">
+      <button class="btn-next" id="nextBtn">Next</button>
+    </div>
+  </div>
+
+  <div class="final-screen" id="finalScreen">
+    <h1>Quiz Complete!</h1>
+    <div class="final-score" id="finalScore">0 / 0</div>
+    <div class="final-message" id="finalMessage"></div>
+    <button class="btn-restart" id="restartBtn">Play Again</button>
+  </div>
+</div>
+
+<script>
+  let totalItems = 0;
+  let currentRound = 0;
+  let score = 0;
+  let roundOrder = [];
+  let answered = false;
+  let audio = null;
+
+  const loadingMsg    = document.getElementById('loadingMsg');
+  const gameContainer = document.getElementById('gameContainer');
+  const quizScreen    = document.getElementById('quizScreen');
+  const finalScreen   = document.getElementById('finalScreen');
+  const pageCounter   = document.getElementById('pageCounter');
+  const scoreDisplay  = document.getElementById('scoreDisplay');
+  const choicesEl     = document.getElementById('choices');
+  const navSection    = document.getElementById('navSection');
+  const nextBtn       = document.getElementById('nextBtn');
+  const playBtn       = document.getElementById('playBtn');
+  const restartBtn    = document.getElementById('restartBtn');
+  const finalScore    = document.getElementById('finalScore');
+  const finalMessage  = document.getElementById('finalMessage');
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function imgPath(n) { return 'png/' + pad(n) + '.png'; }
+  function audPath(n) { return 'audio/' + pad(n) + '.mp3'; }
+
+  function detectImages() {
+    return new Promise(resolve => {
+      let count = 0;
+      function probe(n) {
+        const img = new Image();
+        img.onload = () => { count = n; probe(n + 1); };
+        img.onerror = () => resolve(count);
+        img.src = imgPath(n);
+      }
+      probe(1);
+    });
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function getWrongOptions(correct, total) {
+    const pool = [];
+    for (let i = 1; i <= total; i++) {
+      if (i !== correct) pool.push(i);
+    }
+    shuffle(pool);
+    return pool.slice(0, 2);
+  }
+
+  function stopAudio() {
+    if (audio) { audio.pause(); audio.currentTime = 0; audio = null; }
+    playBtn.classList.remove('playing');
+    playBtn.querySelector('.play-svg').style.display = '';
+    playBtn.querySelector('.pause-svg').style.display = 'none';
+  }
+
+  function loadRound() {
+    answered = false;
+    stopAudio();
+    navSection.classList.remove('visible');
+
+    const correctNum = roundOrder[currentRound];
+    pageCounter.textContent = `Round ${currentRound + 1} of ${totalItems}`;
+    scoreDisplay.textContent = `Score: ${score} / ${currentRound}`;
+
+    const wrong = getWrongOptions(correctNum, totalItems);
+    const options = shuffle([correctNum, ...wrong]);
+
+    choicesEl.innerHTML = '';
+    options.forEach(num => {
+      const card = document.createElement('div');
+      card.className = 'choice-card';
+      card.dataset.num = num;
+
+      const img = document.createElement('img');
+      img.src = imgPath(num);
+      img.alt = 'Option ' + pad(num);
+      card.appendChild(img);
+
+      const label = document.createElement('div');
+      label.className = 'choice-label';
+      card.appendChild(label);
+
+      card.addEventListener('click', () => onChoose(card, num, correctNum));
+      choicesEl.appendChild(card);
+    });
+  }
+
+  function onChoose(card, chosen, correct) {
+    if (answered) return;
+    answered = true;
+
+    choicesEl.querySelectorAll('.choice-card').forEach(c => c.classList.add('disabled'));
+
+    if (chosen === correct) {
+      score++;
+      card.classList.add('correct');
+      card.querySelector('.choice-label').textContent = '✓';
+    } else {
+      card.classList.add('wrong');
+      card.querySelector('.choice-label').textContent = '✗';
+      choicesEl.querySelectorAll('.choice-card').forEach(c => {
+        if (parseInt(c.dataset.num) === correct) {
+          c.classList.add('correct');
+          c.querySelector('.choice-label').textContent = '✓';
+        }
+      });
+    }
+
+    scoreDisplay.textContent = `Score: ${score} / ${currentRound + 1}`;
+
+    if (currentRound + 1 < totalItems) {
+      navSection.classList.add('visible');
+    } else {
+      setTimeout(showFinal, 1200);
+    }
+  }
+
+  function showFinal() {
+    stopAudio();
+    quizScreen.style.display = 'none';
+    finalScreen.classList.add('visible');
+    finalScore.textContent = `${score} / ${totalItems}`;
+
+    const pct = Math.round((score / totalItems) * 100);
+    if (pct === 100) finalMessage.textContent = 'Perfect score! Amazing!';
+    else if (pct >= 80) finalMessage.textContent = 'Great job!';
+    else if (pct >= 50) finalMessage.textContent = 'Good effort! Try again?';
+    else finalMessage.textContent = 'Keep practicing!';
+  }
+
+  playBtn.addEventListener('click', () => {
+    const correctNum = roundOrder[currentRound];
+    if (playBtn.classList.contains('playing')) { stopAudio(); return; }
+    stopAudio();
+    audio = new Audio(audPath(correctNum));
+    playBtn.classList.add('playing');
+    playBtn.querySelector('.play-svg').style.display = 'none';
+    playBtn.querySelector('.pause-svg').style.display = '';
+    audio.addEventListener('ended', () => {
+      playBtn.classList.remove('playing');
+      playBtn.querySelector('.play-svg').style.display = '';
+      playBtn.querySelector('.pause-svg').style.display = 'none';
+      audio = null;
+    });
+    audio.play().catch(err => console.warn('Audio play failed:', err));
+  });
+
+  nextBtn.addEventListener('click', () => { currentRound++; loadRound(); });
+
+  restartBtn.addEventListener('click', () => {
+    stopAudio();
+    currentRound = 0;
+    score = 0;
+    shuffle(roundOrder);
+    finalScreen.classList.remove('visible');
+    quizScreen.style.display = '';
+    loadRound();
+  });
+
+  async function init() {
+    totalItems = await detectImages();
+    if (totalItems < 3) {
+      loadingMsg.textContent = totalItems === 0
+        ? 'No images found — add numbered PNGs to the png/ folder (01.png, 02.png, ...)'
+        : 'Need at least 3 images to play (found ' + totalItems + ')';
+      return;
+    }
+    roundOrder = [];
+    for (let i = 1; i <= totalItems; i++) roundOrder.push(i);
+    shuffle(roundOrder);
+    loadingMsg.style.display = 'none';
+    gameContainer.style.display = '';
+    loadRound();
+  }
+
+  init();
+</script>
+
+</body>
+</html>

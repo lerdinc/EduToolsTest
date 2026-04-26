@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matching Game</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(135deg, #fce4ec 0%, #e1f5fe 25%, #f3e5f5 50%, #fff9c4 75%, #e8f5e9 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 12s ease infinite;
+    padding: 20px;
+  }
+
+  @keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: #5e35b1;
+    margin-bottom: 8px;
+    text-shadow: 2px 2px 0 rgba(255,255,255,0.6);
+  }
+
+  .subtitle {
+    color: #7e57c2;
+    font-size: 1rem;
+    margin-bottom: 24px;
+    font-weight: 700;
+  }
+
+  .game-board {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto;
+    gap: 0;
+    align-items: start;
+    width: 95vw;
+    max-width: 1000px;
+  }
+
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .column-header {
+    text-align: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 12px;
+    margin-bottom: 4px;
+  }
+  .left-col .column-header  { background: linear-gradient(135deg, #42a5f5, #1e88e5); }
+  .right-col .column-header { background: linear-gradient(135deg, #ef5350, #e53935); }
+
+  .divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    padding: 0 12px;
+  }
+
+  .connector-row {
+    height: calc(160px + 16px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .connector-row:first-child {
+    margin-top: 52px;
+  }
+
+  .connector-icon {
+    font-size: 1.6rem;
+    color: #bdbdbd;
+    transition: color 0.4s ease, transform 0.4s ease;
+  }
+  .connector-icon.matched {
+    color: #66bb6a;
+    transform: scale(1.3);
+  }
+
+  .card {
+    width: 100%;
+    height: 160px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, outline 0.2s ease;
+    position: relative;
+  }
+
+  .card img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    pointer-events: none;
+  }
+
+  .card.matched {
+    outline: 4px solid #66bb6a;
+    box-shadow: 0 4px 20px rgba(76,175,80,0.3);
+  }
+
+  .card.wrong {
+    animation: shake 0.4s ease;
+    outline: 4px solid #ef5350;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%      { transform: translateX(-8px); }
+    40%      { transform: translateX(8px); }
+    60%      { transform: translateX(-6px); }
+    80%      { transform: translateX(6px); }
+  }
+
+  .card.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+  }
+
+  .card.drag-over {
+    outline: 3px dashed #7e57c2;
+    transform: scale(1.03);
+  }
+
+  .card.locked {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .right-col .card:not(.locked) {
+    cursor: grab;
+  }
+  .right-col .card:not(.locked):active {
+    cursor: grabbing;
+  }
+
+  .btn-check {
+    margin-top: 28px;
+    padding: 14px 40px;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    color: #fff;
+    background: linear-gradient(135deg, #7e57c2, #5e35b1);
+    box-shadow: 0 6px 20px rgba(94,53,177,0.35);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn-check:hover {
+    transform: scale(1.06);
+    box-shadow: 0 8px 28px rgba(94,53,177,0.45);
+  }
+  .btn-check:active { transform: scale(0.96); }
+
+  .success-banner {
+    display: none;
+    margin-top: 20px;
+    padding: 16px 32px;
+    background: linear-gradient(135deg, #66bb6a, #43a047);
+    color: #fff;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.4rem;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(76,175,80,0.4);
+    animation: popIn 0.4s ease;
+  }
+  .success-banner.visible { display: block; }
+
+  @keyframes popIn {
+    0%   { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .btn-restart {
+    margin-top: 16px;
+    padding: 14px 40px;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    color: #fff;
+    background: linear-gradient(135deg, #66bb6a, #43a047);
+    box-shadow: 0 6px 20px rgba(76,175,80,0.35);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: none;
+  }
+  .btn-restart.visible { display: inline-block; }
+  .btn-restart:hover {
+    transform: scale(1.06);
+    box-shadow: 0 8px 28px rgba(76,175,80,0.45);
+  }
+  .btn-restart:active { transform: scale(0.96); }
+
+  /* Audio column */
+  .audio-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    padding: 0 8px;
+  }
+
+  .audio-col .column-header {
+    background: linear-gradient(135deg, #ff8a65, #ef6c00);
+    text-align: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 12px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+
+  .audio-row {
+    height: calc(160px + 16px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-audio {
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff8a65, #ef5350);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(239,83,80,0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+  .btn-audio:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(239,83,80,0.4);
+  }
+  .btn-audio:active { transform: scale(0.92); }
+  .btn-audio.playing {
+    background: linear-gradient(135deg, #66bb6a, #43a047);
+    box-shadow: 0 4px 14px rgba(76,175,80,0.4);
+    animation: pulse 1.5s ease infinite;
+  }
+  .btn-audio svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 6px 20px rgba(76,175,80,0.4); }
+    50%      { box-shadow: 0 6px 30px rgba(76,175,80,0.7); }
+  }
+
+  .loading-msg {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    color: #7e57c2;
+    margin-top: 40px;
+  }
+
+  .btn-back {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 10px 22px;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: #fff;
+    background: linear-gradient(135deg, #7e57c2, #5e35b1);
+    box-shadow: 0 4px 14px rgba(94,53,177,0.35);
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    z-index: 100;
+  }
+  .btn-back:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 20px rgba(94,53,177,0.45);
+  }
+
+  @media (max-width: 600px) {
+    .card { height: 120px; }
+    .connector-row { height: calc(120px + 16px); }
+    .audio-row { height: calc(120px + 16px); }
+    h1 { font-size: 1.5rem; }
+    .btn-check { font-size: 1rem; padding: 12px 30px; }
+    .btn-back { top: 12px; left: 12px; font-size: 0.85rem; padding: 8px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="btn-back" href="../index.html">&#8592; Home</a>
+
+<h1>Matching Game</h1>
+<p class="subtitle">Drag the right images to match the left ones</p>
+
+<div class="game-board" id="gameBoard" style="display:none">
+  <div class="column left-col" id="leftCol">
+    <div class="column-header">Match these</div>
+  </div>
+  <div class="divider" id="divider"></div>
+  <div class="column right-col" id="rightCol">
+    <div class="column-header">Drag to reorder</div>
+  </div>
+  <div class="audio-col" id="audioCol">
+    <div class="column-header">Audio</div>
+  </div>
+</div>
+
+<p class="loading-msg" id="loadingMsg">Detecting images...</p>
+
+<button class="btn-check" id="checkBtn" style="display:none">Check Matches</button>
+<div class="success-banner" id="successBanner">All matched! Great job!</div>
+<button class="btn-restart" id="restartBtn">Play Again</button>
+
+<script>
+  let PAIRS = 0;
+  let leftOrder = [];
+  let rightOrder = [];
+
+  const leftCol      = document.getElementById('leftCol');
+  const rightCol     = document.getElementById('rightCol');
+  const divider      = document.getElementById('divider');
+  const audioCol     = document.getElementById('audioCol');
+  const checkBtn     = document.getElementById('checkBtn');
+  const successBanner = document.getElementById('successBanner');
+  const restartBtn   = document.getElementById('restartBtn');
+  const gameBoard    = document.getElementById('gameBoard');
+  const loadingMsg   = document.getElementById('loadingMsg');
+
+  let currentAudio = null;
+  let currentAudioBtn = null;
+
+  // --- Auto-detect total PNG count ---
+  function imgPath(n) { return 'png/' + String(n).padStart(2, '0') + '.png'; }
+  function audPath(n) { return 'audio/' + String(n).padStart(2, '0') + '.mp3'; }
+
+  function detectImages() {
+    return new Promise(resolve => {
+      let count = 0;
+      function probe(n) {
+        const img = new Image();
+        img.onload = () => { count = n; probe(n + 1); };
+        img.onerror = () => resolve(count);
+        img.src = imgPath(n);
+      }
+      probe(1);
+    });
+  }
+
+  // --- Shuffle ---
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // --- Create card ---
+  function createCard(num, draggable) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.num = num;
+
+    const img = document.createElement('img');
+    img.src = 'png/' + num + '.png';
+    img.alt = 'Image ' + num;
+    card.appendChild(img);
+
+    if (draggable) {
+      card.draggable = true;
+      card.addEventListener('dragstart', onDragStart);
+      card.addEventListener('dragend', onDragEnd);
+      card.addEventListener('dragover', onDragOver);
+      card.addEventListener('dragleave', onDragLeave);
+      card.addEventListener('drop', onDrop);
+      card.addEventListener('touchstart', onTouchStart, { passive: false });
+      card.addEventListener('touchmove', onTouchMove, { passive: false });
+      card.addEventListener('touchend', onTouchEnd);
+    }
+
+    return card;
+  }
+
+  // --- Create audio button ---
+  function createAudioBtn(rowIndex) {
+    const row = document.createElement('div');
+    row.className = 'audio-row';
+
+    const btn = document.createElement('button');
+    btn.className = 'btn-audio';
+    btn.dataset.row = rowIndex;
+    btn.innerHTML =
+      '<svg class="play-svg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>' +
+      '<svg class="pause-svg" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>';
+
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.row);
+      const audioFile = audPath(idx + 1);
+
+      if (currentAudioBtn === btn && currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+        btn.classList.remove('playing');
+        btn.querySelector('.play-svg').style.display = '';
+        btn.querySelector('.pause-svg').style.display = 'none';
+        currentAudioBtn = null;
+        return;
+      }
+
+      stopAllAudio();
+
+      currentAudio = new Audio(audioFile);
+      currentAudioBtn = btn;
+      btn.classList.add('playing');
+      btn.querySelector('.play-svg').style.display = 'none';
+      btn.querySelector('.pause-svg').style.display = '';
+
+      currentAudio.addEventListener('ended', () => {
+        btn.classList.remove('playing');
+        btn.querySelector('.play-svg').style.display = '';
+        btn.querySelector('.pause-svg').style.display = 'none';
+        currentAudio = null;
+        currentAudioBtn = null;
+      });
+
+      currentAudio.play().catch(err => console.warn('Audio play failed:', err));
+    });
+
+    row.appendChild(btn);
+    return row;
+  }
+
+  function stopAllAudio() {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio = null;
+    }
+    if (currentAudioBtn) {
+      currentAudioBtn.classList.remove('playing');
+      currentAudioBtn.querySelector('.play-svg').style.display = '';
+      currentAudioBtn.querySelector('.pause-svg').style.display = 'none';
+      currentAudioBtn = null;
+    }
+  }
+
+  // --- Drag & Drop ---
+  let draggedCard = null;
+
+  function onDragStart(e) {
+    if (this.classList.contains('locked')) { e.preventDefault(); return; }
+    draggedCard = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  function onDragEnd() {
+    this.classList.remove('dragging');
+    document.querySelectorAll('.card.drag-over').forEach(c => c.classList.remove('drag-over'));
+    draggedCard = null;
+  }
+  function onDragOver(e) {
+    e.preventDefault();
+    if (this === draggedCard || this.classList.contains('locked')) return;
+    if (this.parentNode === rightCol) this.classList.add('drag-over');
+  }
+  function onDragLeave() { this.classList.remove('drag-over'); }
+  function onDrop(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+    if (!draggedCard || this === draggedCard || this.classList.contains('locked')) return;
+    if (this.parentNode !== rightCol) return;
+    swapCards(draggedCard, this);
+  }
+
+  function swapCards(a, b) {
+    const parent = a.parentNode;
+    const aNext = a.nextSibling === b ? a : a.nextSibling;
+    const bNext = b.nextSibling === a ? b : b.nextSibling;
+    if (a.nextSibling === b) { parent.insertBefore(b, a); }
+    else if (b.nextSibling === a) { parent.insertBefore(a, b); }
+    else { parent.insertBefore(a, bNext); parent.insertBefore(b, aNext); }
+  }
+
+  // --- Touch support ---
+  let touchCard = null;
+  function onTouchStart(e) {
+    if (this.classList.contains('locked')) return;
+    touchCard = this;
+    this.classList.add('dragging');
+  }
+  function onTouchMove(e) { if (touchCard) e.preventDefault(); }
+  function onTouchEnd(e) {
+    if (!touchCard) return;
+    touchCard.classList.remove('dragging');
+    const touch = e.changedTouches[0];
+    const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetCard = dropTarget?.closest('.card');
+    if (targetCard && targetCard !== touchCard && targetCard.parentNode === rightCol && !targetCard.classList.contains('locked')) {
+      swapCards(touchCard, targetCard);
+    }
+    touchCard = null;
+  }
+
+  // --- Build the game board ---
+  function buildGame() {
+    // Clear previous content (keep headers)
+    leftCol.querySelectorAll('.card').forEach(c => c.remove());
+    rightCol.querySelectorAll('.card').forEach(c => c.remove());
+    divider.innerHTML = '';
+    audioCol.querySelectorAll('.audio-row').forEach(r => r.remove());
+
+    leftOrder = [];
+    rightOrder = [];
+
+    for (let i = 1; i <= PAIRS; i++) {
+      leftOrder.push(String(i).padStart(2, '0'));
+    }
+    for (let i = PAIRS + 1; i <= PAIRS * 2; i++) {
+      rightOrder.push(String(i).padStart(2, '0'));
+    }
+
+    shuffle(rightOrder);
+
+    leftOrder.forEach(num => leftCol.appendChild(createCard(num, false)));
+    rightOrder.forEach(num => rightCol.appendChild(createCard(num, true)));
+
+    for (let i = 0; i < PAIRS; i++) {
+      const row = document.createElement('div');
+      row.className = 'connector-row';
+      if (i === 0) row.classList.add('first');
+      const icon = document.createElement('span');
+      icon.className = 'connector-icon';
+      icon.id = 'connector-' + i;
+      icon.textContent = '↔';
+      row.appendChild(icon);
+      divider.appendChild(row);
+    }
+
+    for (let i = 0; i < PAIRS; i++) {
+      audioCol.appendChild(createAudioBtn(i));
+    }
+  }
+
+  // --- Check matches ---
+  checkBtn.addEventListener('click', () => {
+    const rightCards = rightCol.querySelectorAll('.card');
+    let allCorrect = true;
+
+    rightCards.forEach((card, i) => {
+      const rightNum = parseInt(card.dataset.num);
+      const leftNum  = parseInt(leftOrder[i]);
+      const connector = document.getElementById('connector-' + i);
+      const isMatch = rightNum === leftNum + PAIRS;
+
+      if (isMatch) {
+        card.classList.remove('wrong');
+        card.classList.add('matched', 'locked');
+        card.draggable = false;
+        connector.classList.add('matched');
+        connector.textContent = '✓';
+        leftCol.querySelectorAll('.card')[i].classList.add('matched');
+      } else {
+        allCorrect = false;
+        card.classList.remove('matched');
+        card.classList.add('wrong');
+        connector.classList.remove('matched');
+        connector.textContent = '↔';
+        setTimeout(() => card.classList.remove('wrong'), 500);
+      }
+    });
+
+    if (allCorrect) {
+      successBanner.classList.add('visible');
+      checkBtn.style.display = 'none';
+      restartBtn.classList.add('visible');
+    }
+  });
+
+  // --- Restart ---
+  restartBtn.addEventListener('click', () => {
+    stopAllAudio();
+    successBanner.classList.remove('visible');
+    restartBtn.classList.remove('visible');
+    checkBtn.style.display = '';
+    buildGame();
+  });
+
+  // --- Init: detect and start ---
+  async function init() {
+    const totalImages = await detectImages();
+
+    if (totalImages < 2 || totalImages % 2 !== 0) {
+      loadingMsg.textContent = totalImages === 0
+        ? 'No images found — add numbered PNGs to the png/ folder (01.png, 02.png, ...)'
+        : `Found ${totalImages} images — need an even number for matching pairs`;
+      return;
+    }
+
+    PAIRS = totalImages / 2;
+    loadingMsg.style.display = 'none';
+    gameBoard.style.display = '';
+    checkBtn.style.display = '';
+    buildGame();
+  }
+
+  init();
+</script>
+
+</body>
+</html>

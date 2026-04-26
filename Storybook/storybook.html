@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Storybook</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Nunito', sans-serif;
+    overflow: hidden;
+    background: linear-gradient(135deg, #fce4ec 0%, #e1f5fe 25%, #f3e5f5 50%, #fff9c4 75%, #e8f5e9 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 12s ease infinite;
+  }
+
+  @keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .storybook {
+    position: relative;
+    width: 95vw;
+    max-width: 1000px;
+    background: #fff;
+    border-radius: 24px;
+    box-shadow:
+      0 20px 60px rgba(0,0,0,0.15),
+      0 0 0 6px rgba(255,255,255,0.6),
+      inset 0 0 80px rgba(255,255,255,0.3);
+    overflow: hidden;
+    transition: transform 0.3s ease;
+  }
+
+  /* --- Page Counter --- */
+  .page-counter {
+    text-align: center;
+    padding: 16px 20px 8px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    color: #7e57c2;
+    letter-spacing: 1px;
+  }
+
+  /* --- Image Container --- */
+  .image-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: #f5f5f5;
+  }
+
+  .image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .image-container img.loaded {
+    opacity: 1;
+  }
+
+  /* page turn animation */
+  .page-turning .image-container img {
+    animation: pageTurn 0.5s ease;
+  }
+
+  @keyframes pageTurn {
+    0%   { opacity: 0; transform: rotateY(12deg) scale(0.95); }
+    100% { opacity: 1; transform: rotateY(0deg) scale(1); }
+  }
+
+  /* --- Controls Bar --- */
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 18px 20px 22px;
+    background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
+  }
+
+  .btn {
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn:active { transform: scale(0.92); }
+
+  /* Nav buttons */
+  .btn-nav {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, #e1bee7, #ce93d8);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(156,39,176,0.3);
+  }
+  .btn-nav:hover {
+    background: linear-gradient(135deg, #ce93d8, #ab47bc);
+    box-shadow: 0 6px 20px rgba(156,39,176,0.4);
+    transform: scale(1.08);
+  }
+  .btn-nav:disabled {
+    background: #e0e0e0;
+    color: #bdbdbd;
+    box-shadow: none;
+    cursor: default;
+    transform: none;
+  }
+
+  .btn-nav svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+  }
+
+  /* Play button */
+  .btn-play {
+    width: 68px;
+    height: 68px;
+    background: linear-gradient(135deg, #ff8a65, #ef5350);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(239,83,80,0.4);
+  }
+  .btn-play:hover {
+    background: linear-gradient(135deg, #ef5350, #e53935);
+    box-shadow: 0 8px 28px rgba(239,83,80,0.5);
+    transform: scale(1.1);
+  }
+  .btn-play.playing {
+    background: linear-gradient(135deg, #66bb6a, #43a047);
+    box-shadow: 0 6px 20px rgba(76,175,80,0.4);
+    animation: pulse 1.5s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 6px 20px rgba(76,175,80,0.4); }
+    50%      { box-shadow: 0 6px 30px rgba(76,175,80,0.7); }
+  }
+
+  .btn-play svg {
+    width: 30px;
+    height: 30px;
+    fill: currentColor;
+  }
+
+  /* --- Progress bar --- */
+  .progress-wrap {
+    width: 100%;
+    padding: 0 20px 16px;
+    display: none;
+  }
+  .progress-wrap.visible { display: block; }
+
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #ff8a65, #ef5350);
+    border-radius: 3px;
+    transition: width 0.25s linear;
+  }
+
+  /* --- Decorative dots --- */
+  .dots {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .dot {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.12;
+  }
+  .dot:nth-child(1) { width: 120px; height: 120px; background: #ff7043; top: -30px; left: -30px; }
+  .dot:nth-child(2) { width: 80px;  height: 80px;  background: #42a5f5; bottom: -20px; right: 40px; }
+  .dot:nth-child(3) { width: 60px;  height: 60px;  background: #66bb6a; top: 50%;  right: -15px; }
+  .dot:nth-child(4) { width: 100px; height: 100px; background: #fdd835; bottom: 30%; left: -30px; }
+
+  .btn-back {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 10px 22px;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: #fff;
+    background: linear-gradient(135deg, #7e57c2, #5e35b1);
+    box-shadow: 0 4px 14px rgba(94,53,177,0.35);
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    z-index: 100;
+  }
+  .btn-back:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 20px rgba(94,53,177,0.45);
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 500px) {
+    .storybook { border-radius: 16px; }
+    .btn-nav   { width: 44px; height: 44px; }
+    .btn-play  { width: 58px; height: 58px; }
+    .controls  { gap: 12px; padding: 14px 16px 18px; }
+    .page-counter { font-size: 0.95rem; }
+    .btn-back { top: 12px; left: 12px; font-size: 0.85rem; padding: 8px 16px; }
+  }
+
+  .loading-msg {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    color: #7e57c2;
+    margin-top: 40px;
+    display: none;
+  }
+  .loading-msg.visible { display: block; }
+</style>
+</head>
+<body>
+
+<a class="btn-back" href="../index.html">&#8592; Home</a>
+
+<p class="loading-msg" id="loadingMsg">Detecting images...</p>
+
+<div class="storybook" id="storybook">
+  <!-- decorative blobs -->
+  <div class="dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+
+  <div class="page-counter" id="pageCounter">Page 1 of 6</div>
+
+  <div class="image-container" id="imageContainer">
+    <img id="pageImage" src="png/01.png" alt="Storybook page">
+  </div>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-nav" id="prevBtn" aria-label="Previous page">
+      <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+    </button>
+
+    <button class="btn btn-play" id="playBtn" aria-label="Play audio">
+      <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>
+    </button>
+
+    <button class="btn btn-nav" id="nextBtn" aria-label="Next page">
+      <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+  let totalPages = 0;
+  let currentPage = 1;
+  let audio = null;
+  let isPlaying = false;
+  let progressRAF = null;
+
+  const pageImage    = document.getElementById('pageImage');
+  const pageCounter  = document.getElementById('pageCounter');
+  const prevBtn      = document.getElementById('prevBtn');
+  const nextBtn      = document.getElementById('nextBtn');
+  const playBtn      = document.getElementById('playBtn');
+  const playIcon     = document.getElementById('playIcon');
+  const pauseIcon    = document.getElementById('pauseIcon');
+  const progressWrap = document.getElementById('progressWrap');
+  const progressFill = document.getElementById('progressFill');
+  const storybook    = document.getElementById('storybook');
+
+  // Auto-detect how many pages exist by probing for png files
+  function pagePath(n) {
+    return 'png/' + String(n).padStart(2, '0') + '.png';
+  }
+  function audioPath(n) {
+    return 'audio/' + String(n).padStart(2, '0') + '.mp3';
+  }
+
+  function detectPages() {
+    return new Promise((resolve) => {
+      let count = 0;
+      function probe(n) {
+        const img = new Image();
+        img.onload = () => { count = n; probe(n + 1); };
+        img.onerror = () => resolve(count);
+        img.src = pagePath(n);
+      }
+      probe(1);
+    });
+  }
+
+  const loadingMsg = document.getElementById('loadingMsg');
+
+  async function init() {
+    loadingMsg.classList.add('visible');
+    loadingMsg.textContent = 'Detecting images...';
+    storybook.style.display = 'none';
+
+    totalPages = await detectPages();
+
+    if (totalPages === 0) {
+      loadingMsg.textContent = 'No images found — add numbered PNGs to the png/ folder (01.png, 02.png, ...)';
+      return;
+    }
+
+    loadingMsg.classList.remove('visible');
+    storybook.style.display = '';
+    pageCounter.textContent = `Page 1 of ${totalPages}`;
+    pageImage.src = pagePath(1);
+    pageImage.onload = () => pageImage.classList.add('loaded');
+    prevBtn.disabled = true;
+    nextBtn.disabled = totalPages <= 1;
+  }
+
+  function updatePage() {
+    stopAudio();
+
+    storybook.classList.add('page-turning');
+    setTimeout(() => storybook.classList.remove('page-turning'), 500);
+
+    pageImage.classList.remove('loaded');
+    pageImage.src = pagePath(currentPage);
+    pageImage.onload = () => pageImage.classList.add('loaded');
+
+    pageCounter.textContent = `Page ${currentPage} of ${totalPages}`;
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.disabled = currentPage === totalPages;
+  }
+
+  function stopAudio() {
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio = null;
+    }
+    isPlaying = false;
+    playIcon.style.display = '';
+    pauseIcon.style.display = 'none';
+    playBtn.classList.remove('playing');
+    progressWrap.classList.remove('visible');
+    progressFill.style.width = '0%';
+    cancelAnimationFrame(progressRAF);
+  }
+
+  function updateProgress() {
+    if (audio && audio.duration) {
+      const pct = (audio.currentTime / audio.duration) * 100;
+      progressFill.style.width = pct + '%';
+    }
+    if (isPlaying) {
+      progressRAF = requestAnimationFrame(updateProgress);
+    }
+  }
+
+  function togglePlay() {
+    if (isPlaying) {
+      audio.pause();
+      isPlaying = false;
+      playIcon.style.display = '';
+      pauseIcon.style.display = 'none';
+      playBtn.classList.remove('playing');
+      cancelAnimationFrame(progressRAF);
+      return;
+    }
+
+    if (!audio) {
+      audio = new Audio(audioPath(currentPage));
+      audio.addEventListener('ended', () => stopAudio());
+    }
+
+    audio.play().then(() => {
+      isPlaying = true;
+      playIcon.style.display = 'none';
+      pauseIcon.style.display = '';
+      playBtn.classList.add('playing');
+      progressWrap.classList.add('visible');
+      updateProgress();
+    }).catch(err => console.warn('Audio play failed:', err));
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 1) { currentPage--; updatePage(); }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentPage < totalPages) { currentPage++; updatePage(); }
+  });
+
+  playBtn.addEventListener('click', togglePlay);
+
+  // Keyboard: Arrow keys to navigate, Space to play/pause
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' && currentPage > 1)           { currentPage--; updatePage(); }
+    if (e.key === 'ArrowRight' && currentPage < totalPages)  { currentPage++; updatePage(); }
+    if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  });
+
+  // Start
+  init();
+</script>
+
+</body>
+</html>
